@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from './context/AuthContext'
 
 function App() {
   const [theme, setTheme] = useState('light')
+  const { user, signInWithGoogle, signOut, loading } = useAuth()
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -27,12 +29,32 @@ function App() {
               Clube do Livro
             </h1>
           </div>
-          <button 
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            
+            {!loading && (
+              user ? (
+                <div className="flex items-center gap-3">
+                  <img src={user.user_metadata.avatar_url || "https://ui-avatars.com/api/?name=" + user.user_metadata.full_name} alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-gray-300" />
+                  <button onClick={signOut} className="text-sm font-medium text-gray-600 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400">
+                    Sair
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={signInWithGoogle} 
+                  className="px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 text-sm font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 shadow-md transition-colors"
+                >
+                  Entrar com Google
+                </button>
+              )
+            )}
+          </div>
         </div>
       </nav>
 

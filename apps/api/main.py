@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Carrega as variáveis de ambiente do arquivo .env na raiz do projeto
 load_dotenv(dotenv_path="../../.env")
 
-from routers import rounds, nominations
+from routers import rounds, nominations, auth
 
 app = FastAPI(
     title="Livrolatras API",
@@ -16,6 +16,7 @@ app = FastAPI(
 
 app.include_router(rounds.router)
 app.include_router(nominations.router)
+app.include_router(auth.router)
 
 # Configuração de CORS (permite que o frontend React se comunique com a API)
 app.add_middleware(

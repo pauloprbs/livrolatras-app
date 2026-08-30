@@ -26,4 +26,10 @@ def sync_user(current_user = Depends(get_current_user), db: Session = Depends(ge
         db.commit()
         db.refresh(db_user)
     
-    return {"message": "Usuário sincronizado com sucesso", "member_id": db_user.id}
+    return {"message": "Usuário sincronizado com sucesso", "member_id": db_user.id, "role": db_user.role}
+
+@router.get("/members")
+def get_all_members(db: Session = Depends(get_db)):
+    # Retorna nome, avatar e id de todos os membros
+    members = db.query(models.Member).all()
+    return [{"id": str(m.id), "name": m.name, "avatar_url": m.avatar_url, "role": m.role} for m in members]

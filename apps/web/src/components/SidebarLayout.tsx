@@ -1,12 +1,15 @@
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Library, CheckSquare, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Library, CheckSquare, User, LogOut, Menu, X, Shield } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import logo01 from '../../imgs/logo_01.jpeg'
 
 export function SidebarLayout({ children }: { children: ReactNode }) {
+  const { role } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -19,6 +22,10 @@ export function SidebarLayout({ children }: { children: ReactNode }) {
     { path: '/votacao', icon: CheckSquare, label: 'Votação' },
     { path: '/perfil', icon: User, label: 'Meu Perfil' },
   ]
+
+  if (role === 'admin' || role === 'super_admin') {
+    menuItems.push({ path: '/admin', icon: Shield, label: 'Painel do Admin' })
+  }
 
   return (
     <div className="min-h-screen bg-club-beige flex">
@@ -62,10 +69,13 @@ export function SidebarLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header (if needed) */}
-        <div className="md:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Mobile Header */}
+        <div className="md:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-20 relative">
           <div className="flex items-center">
+             <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 -ml-2 mr-2 text-gray-600 hover:text-club-blue">
+               <Menu className="w-6 h-6" />
+             </button>
              <img src={logo01} alt="Logo" className="w-8 h-8 object-contain rounded-lg mr-2 shadow-sm" />
              <span className="font-serif font-bold text-lg text-club-blue">Livrólatras</span>
           </div>
@@ -73,6 +83,49 @@ export function SidebarLayout({ children }: { children: ReactNode }) {
             <LogOut className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Mobile Overlay Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex">
+            {/* Dark overlay backdrop */}
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+            
+            {/* Sidebar content */}
+            <div className="relative w-64 max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+              <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
+                <div className="flex items-center">
+                  <img src={logo01} alt="Logo" className="w-8 h-8 object-contain rounded-lg mr-3 shadow-sm" />
+                  <span className="font-serif font-bold text-xl text-club-blue tracking-tight">Menu</span>
+                </div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                {menuItems.map((item) => {
+                  const isActive = location.pathname === item.path
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                        isActive 
+                          ? 'bg-club-lightpink text-club-pink' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-club-blue'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 mr-4 ${isActive ? 'text-club-pink' : 'text-gray-400'}`} />
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+          </div>
+        )}
         
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <div className="max-w-4xl mx-auto">

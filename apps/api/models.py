@@ -49,5 +49,18 @@ class Nomination(Base):
     rejection_reason = Column(String)
     status = Column(String, default="pending")
 
-# Apenas vinculando a engine para certificar que o pgvector está registrado
-# As tabelas já foram criadas via schema.sql, mas isso é útil para referências.
+class Vote(Base):
+    __tablename__ = "votes"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("members.id", ondelete="CASCADE"))
+    nomination_id = Column(UUID(as_uuid=True), ForeignKey("nominations.id", ondelete="CASCADE"))
+    round_id = Column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
+    weight = Column(Float, default=1.0)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+class Attendance(Base):
+    __tablename__ = "attendances"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("members.id", ondelete="CASCADE"))
+    round_id = Column(UUID(as_uuid=True), ForeignKey("rounds.id", ondelete="CASCADE"))
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

@@ -45,3 +45,33 @@ class NominationResponse(NominationBase):
 
     class Config:
         from_attributes = True
+
+class VoteBase(BaseModel):
+    nomination_id: UUID
+
+class VoteCreate(VoteBase):
+    pass
+
+class VoteResponse(VoteBase):
+    id: UUID
+    user_id: UUID
+    round_id: UUID
+    weight: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AttendanceBase(BaseModel):
+    user_id: UUID
+    round_id: UUID
+
+class AttendanceCreate(AttendanceBase):
+    pass
+
+class AttendanceResponse(AttendanceBase):
+    id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

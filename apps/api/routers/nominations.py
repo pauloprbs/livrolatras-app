@@ -96,7 +96,8 @@ def process_nomination_background(nom_id: uuid.UUID, nomination_in: schemas.Nomi
             score = ai_res.get("score", 0)
             opinion = ai_res.get("opinion", "")
             
-            status_val = "approved" if score >= 6 else "rejected"
+            # Deixamos como pending para passar pela moderação humana no Painel Admin
+            status_val = "pending"
         elif not nomination_in.title or not nomination_in.author:
             status_val = "pending_metadata"
 
@@ -174,3 +175,26 @@ def create_nomination(
 @router.get("/round/{round_id}", response_model=list[schemas.NominationResponse])
 def read_nominations_by_round(round_id: uuid.UUID, db: Session = Depends(get_db)):
     return db.query(models.Nomination).filter(models.Nomination.round_id == round_id).all()
+
+@router.patch("/{nom_id}/status", response_model=schemas.NominationResponse)
+def update_nomination_status(
+    nom_id: uuid.UUID,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    db_user = db.query(models.Member).filter(models.Member.supabase_uid == current_user.id).first()
+    if not db_user or db_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores podem moderar indicações.")
+        
+    db_nom = db.query(models.Nomination).filter(models.Nomination.id == nom_id).first()
+    if not db_nom:
+        raise HTTPException(status_code=404, detail="Indicação não encontrada.")
+        
+    if status not in ["approved", "rejected", "pending"]:
+        raise HTTPException(status_code=400, detail="Status inválido.")
+        
+    db_nom.status = status
+    db.commit()
+    db.refresh(db_nom)
+    return db_nom

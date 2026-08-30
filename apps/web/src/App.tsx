@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import { Auth } from './pages/Auth'
 import { Home } from './pages/Home'
 import { Mural } from './pages/Mural'
+import { Admin } from './pages/Admin'
 import { SidebarLayout } from './components/SidebarLayout'
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -61,8 +62,22 @@ export default function App() {
             </PrivateRoute>
           } 
         />
-        {/* Futuras rotas */}
-        <Route path="/votacao" element={<PrivateRoute><div className="p-8 text-center text-zinc-500">Sistema de Votação (Em Breve)</div></PrivateRoute>} />
+        <Route 
+          path="/admin" 
+          element={
+            <PrivateRoute>
+              <Admin />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/votacao" 
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          } 
+        />
         <Route path="/perfil" element={<PrivateRoute><div className="p-8 text-center text-zinc-500">Meu Perfil (Em Breve)</div></PrivateRoute>} />
       </Routes>
     </BrowserRouter>

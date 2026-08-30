@@ -1,7 +1,34 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Sparkles, Calendar, BookMarked, Quote } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export function Mural() {
+  const [activeRound, setActiveRound] = useState<any>(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchActiveRound = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/rounds/active')
+        if (res.ok) {
+          const round = await res.json()
+          setActiveRound(round)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    fetchActiveRound()
+  }, [])
+
+  const now = new Date()
+  const votingOpensAt = activeRound?.voting_opens_at ? new Date(activeRound.voting_opens_at) : null
+  const votingClosesAt = activeRound?.voting_closes_at ? new Date(activeRound.voting_closes_at) : null
+  
+  const isBeforeVoting = !votingOpensAt || now < votingOpensAt
+  const isVotingOpen = votingOpensAt && votingClosesAt && now >= votingOpensAt && now <= votingClosesAt
+  const isVotingClosed = votingClosesAt && now > votingClosesAt
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <header>
@@ -10,23 +37,53 @@ export function Mural() {
       </header>
 
       {/* Banner Destaque */}
-      <div className="bg-club-blue rounded-2xl p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <span className="inline-flex items-center bg-white/20 px-3 py-1 rounded-full text-sm font-medium mb-4 backdrop-blur-md">
-            <Sparkles className="w-4 h-4 mr-2 text-club-pink" />
-            Rodada em Andamento
-          </span>
-          <h2 className="text-2xl md:text-3xl font-serif font-bold mb-2">Grandes Épicos</h2>
-          <p className="text-blue-100 max-w-lg text-sm md:text-base leading-relaxed mb-6">
-            O tema oficial deste mês foca em jornadas grandiosas, mundos expansivos e heróis inesquecíveis. A fase de indicação de livros já começou!
-          </p>
-          <button className="bg-club-pink text-white font-medium px-5 py-2.5 rounded-lg shadow hover:bg-pink-600 transition-colors">
-            Ver Indicações
-          </button>
+      {activeRound ? (
+        <div className="bg-club-blue rounded-2xl p-6 md:p-10 text-white shadow-xl relative overflow-hidden min-h-[300px] flex flex-col justify-center">
+          {activeRound.theme_image_url && (
+            <>
+              <img 
+                src={activeRound.theme_image_url} 
+                alt="Tema" 
+                className="absolute inset-0 w-full h-full object-cover z-0" 
+              />
+              <div className="absolute inset-0 bg-black/60 z-10"></div>
+            </>
+          )}
+          <div className="relative z-20">
+            <span className="inline-flex items-center bg-white/20 px-3 py-1 rounded-full text-sm font-medium mb-4 backdrop-blur-md">
+              <Sparkles className="w-4 h-4 mr-2 text-club-pink" />
+              Tema do Mês
+            </span>
+            <h2 className="text-2xl md:text-4xl font-serif font-bold mb-2">{activeRound.theme_name}</h2>
+            
+            {/* Status Dinâmico */}
+            {isBeforeVoting && (
+              <p className="text-blue-100 font-medium mb-6">Indicações de livros em andamento</p>
+            )}
+            {isVotingOpen && (
+              <p className="text-green-300 font-medium mb-6">Votação aberta! Escolha seu favorito.</p>
+            )}
+            {isVotingClosed && (
+              <p className="text-yellow-300 font-medium mb-6">Livro escolhido! Veja o vencedor.</p>
+            )}
+
+            <button 
+              onClick={() => {
+                if (isBeforeVoting) navigate('/indicacoes')
+                else if (isVotingOpen) navigate('/votacao')
+                else navigate('/') // Futuro: link pro livro vencedor
+              }}
+              className="bg-club-pink text-white font-medium px-5 py-2.5 rounded-lg shadow hover:bg-pink-600 transition-colors"
+            >
+              {isBeforeVoting ? 'Ir para Indicações' : isVotingOpen ? 'Ir para Votação' : 'Ver Livro Vencedor'}
+            </button>
+          </div>
         </div>
-        {/* Decoração Background */}
-        <BookMarked className="absolute -right-8 -bottom-8 w-64 h-64 text-black/10" />
-      </div>
+      ) : (
+        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl p-10 flex items-center justify-center text-gray-500">
+          Nenhuma rodada ativa no momento.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card Agenda */}

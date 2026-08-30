@@ -14,19 +14,11 @@ export function Home() {
   const [selectedBook, setSelectedBook] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
-
-  const fetchActiveRound = async () => {
-    try {
-      const res = await fetch('http://127.0.0.1:8000/rounds/active')
-      if (res.ok) {
-        const round = await res.json()
-        setActiveRound(round)
-        fetchNominations(round.id)
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  }
+  
+  // Voting State
+  const [isVoting, setIsVoting] = useState<string | null>(null)
+  const [userVote, setUserVote] = useState<string | null>(null) // ID do livro votado
+  const { memberId } = useAuth()
 
   const fetchNominations = async (roundId: string) => {
     const res = await fetch(`http://127.0.0.1:8000/nominations/round/${roundId}`)
@@ -35,9 +27,47 @@ export function Home() {
     }
   }
 
+  const checkUserVote = async (roundId: string) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/rounds/${roundId}/my_vote`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
+      if (res.ok) {
+        const vote = await res.json()
+        setUserVote(vote.nomination_id)
+      }
+    } catch (e) {
+      console.error("Não foi possível carregar o voto", e)
+    }
+  }
+
   useEffect(() => {
-    fetchActiveRound()
+    const init = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/rounds/active')
+        if (res.ok) {
+          const round = await res.json()
+          setActiveRound(round)
+          fetchNominations(round.id)
+          checkUserVote(round.id)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    init()
   }, [])
+
+  const now = new Date();
+  const votingOpensAt = activeRound?.voting_opens_at ? new Date(activeRound.voting_opens_at) : null;
+  const votingClosesAt = activeRound?.voting_closes_at ? new Date(activeRound.voting_closes_at) : null;
+  
+  // Condições de Tempo
+  const isBeforeVoting = !votingOpensAt || now < votingOpensAt;
+  const isVotingOpen = votingOpensAt && votingClosesAt && now >= votingOpensAt && now <= votingClosesAt;
+  const isVotingClosed = votingClosesAt && now > votingClosesAt;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,12 +173,12 @@ export function Home() {
           {/* Fundo da Rodada (Imagem ou Cores de fallback) */}
           {activeRound.theme_image_url ? (
             <>
-              <div className="absolute inset-0 bg-black/60 z-0"></div>
               <img 
                 src={activeRound.theme_image_url} 
                 alt="Tema" 
-                className="absolute inset-0 w-full h-full object-cover z-[-1]" 
+                className="absolute inset-0 w-full h-full object-cover z-0" 
               />
+              <div className="absolute inset-0 bg-black/60 z-10"></div>
             </>
           ) : (
             <div className="absolute inset-0 bg-white dark:bg-gray-800 z-0">
@@ -156,7 +186,7 @@ export function Home() {
             </div>
           )}
           
-          <div className="relative z-10 flex flex-col items-start gap-4">
+          <div className="relative z-20 flex flex-col items-start gap-4">
             <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-club-pink dark:bg-club-blue rounded-full">
               Votação Aberta
             </span>
@@ -166,12 +196,32 @@ export function Home() {
             <p className={`max-w-2xl text-lg whitespace-pre-wrap ${activeRound.theme_image_url ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}`}>
               {activeRound.theme_description}
             </p>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="mt-4 px-6 py-3 bg-club-pink dark:bg-club-blue hover:bg-pink-600 dark:hover:bg-blue-700 text-white font-medium rounded-full shadow-lg transition-transform transform hover:-translate-y-1"
-            >
-              Indicar Livro
-            </button>
+            
+            {isBeforeVoting && (
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="mt-4 px-6 py-3 bg-club-pink dark:bg-club-blue hover:bg-pink-600 dark:hover:bg-blue-700 text-white font-medium rounded-full shadow-lg transition-transform transform hover:-translate-y-1"
+              >
+                Indicar Livro
+              </button>
+            )}
+            
+            {isVotingOpen && (
+              <div className="mt-4 flex flex-col items-start gap-2">
+                <div className="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/30 text-white font-medium">
+                  {userVote ? 'Seu voto foi registrado!' : 'Votação em andamento! Escolha abaixo.'}
+                </div>
+                {userVote && (
+                  <p className="text-sm text-white/80 italic ml-2">Você ainda pode trocar seu voto até o encerramento.</p>
+                )}
+              </div>
+            )}
+            
+            {isVotingClosed && (
+              <div className="mt-4 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/30 text-white font-medium">
+                Votação Encerrada.
+              </div>
+            )}
           </div>
         </section>
       ) : (
@@ -215,14 +265,64 @@ export function Home() {
                       </span>
                     )}
                     
-                    {/* Parecer da IA */}
-                    {nom.llm_opinion && (
-                      <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-1">🤖 Parecer da Curadora Virtual:</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 italic">"{nom.llm_opinion}"</p>
+                    {/* Parecer da IA (Apenas se rejeitado) */}
+                    {nom.status === 'rejected' && nom.llm_opinion && (
+                      <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
+                        <p className="text-xs text-red-700 dark:text-red-400 font-semibold mb-1">Motivo da Recusa (IA):</p>
+                        <p className="text-xs text-red-600 dark:text-red-300 italic">"{nom.llm_opinion}"</p>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Botão de Votar */}
+                  {isVotingOpen && nom.status === 'approved' && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                      {nom.user_id === memberId ? (
+                        <div className="text-center text-sm text-gray-500 font-medium py-2">
+                          Seu livro indicado
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            const { data: { session } } = await supabase.auth.getSession()
+                            if (!session) return
+                            setIsVoting(nom.id)
+                            try {
+                              const res = await fetch(`http://127.0.0.1:8000/rounds/${activeRound.id}/vote`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${session.access_token}`
+                                },
+                                body: JSON.stringify({ nomination_id: nom.id })
+                              })
+                              if (res.ok) {
+                                setUserVote(nom.id)
+                                alert("Voto registrado com sucesso!")
+                              } else {
+                                const err = await res.json()
+                                alert(`Erro ao votar: ${err.detail}`)
+                              }
+                            } catch (e) {
+                              alert("Erro de conexão.")
+                            } finally {
+                              setIsVoting(null)
+                            }
+                          }}
+                          disabled={isVoting === nom.id || userVote === nom.id}
+                          className={`w-full py-2.5 rounded-lg font-bold transition-all ${
+                            userVote === nom.id 
+                              ? 'bg-green-500 text-white cursor-default' 
+                              : userVote !== null 
+                                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md'
+                                : 'bg-club-blue hover:bg-blue-800 text-white shadow-md'
+                          }`}
+                        >
+                          {isVoting === nom.id ? 'Processando...' : userVote === nom.id ? 'Seu Voto Atual ✓' : userVote !== null ? 'Trocar para este Livro' : 'Votar Neste Livro'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

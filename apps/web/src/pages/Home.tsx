@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
-export default function Home() {
+export function Home() {
   const [activeRound, setActiveRound] = useState<any>(null)
   const [nominations, setNominations] = useState<any[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)

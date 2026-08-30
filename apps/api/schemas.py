@@ -6,6 +6,7 @@ from uuid import UUID
 class RoundBase(BaseModel):
     theme_name: str
     theme_description: Optional[str] = None
+    theme_image_url: Optional[str] = None
     month_year: str
     voting_opens_at: Optional[datetime] = None
     voting_closes_at: Optional[datetime] = None

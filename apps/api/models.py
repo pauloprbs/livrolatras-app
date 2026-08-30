@@ -24,6 +24,7 @@ class Round(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     theme_name = Column(String)
     theme_description = Column(String)
+    theme_image_url = Column(String)
     month_year = Column(String)
     voting_opens_at = Column(TIMESTAMP(timezone=True))
     voting_closes_at = Column(TIMESTAMP(timezone=True))

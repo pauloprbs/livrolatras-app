@@ -18,6 +18,15 @@ def create_round(round_in: schemas.RoundCreate, db: Session = Depends(get_db)):
 def read_rounds(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return db.query(models.Round).order_by(models.Round.voting_opens_at.desc()).offset(skip).limit(limit).all()
 
+@router.get("/active", response_model=schemas.RoundResponse)
+def get_active_round(db: Session = Depends(get_db)):
+    db_round = db.query(models.Round).filter(models.Round.status == 'open_suggestions').order_by(models.Round.voting_opens_at.desc()).first()
+    if not db_round:
+        db_round = db.query(models.Round).order_by(models.Round.voting_opens_at.desc()).first()
+    if not db_round:
+        raise HTTPException(status_code=404, detail="Nenhuma rodada encontrada")
+    return db_round
+
 @router.get("/{round_id}", response_model=schemas.RoundResponse)
 def read_round(round_id: uuid.UUID, db: Session = Depends(get_db)):
     db_round = db.query(models.Round).filter(models.Round.id == round_id).first()

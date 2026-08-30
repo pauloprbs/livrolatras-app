@@ -6,3 +6,6 @@ pydantic
 psycopg2-binary
 python-dotenv
 pgvector
+requests
+google-generativeai
+nomic
